@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Download, Share2, Eye, Tag } from 'lucide-react';
+import { Heart, Download, Share2, Eye, Tag, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Photo, mockPhotos } from '@/lib/mock-photo-data';
 
@@ -199,9 +199,16 @@ export function GalleryGrid({
           <button
             onClick={onLoadMore}
             disabled={isLoading}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary inline-flex items-center gap-2 px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Loading...' : 'Load More Photos'}
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More Photos'
+            )}
           </button>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Showing {displayedPhotos.length} of {totalPhotos} photos

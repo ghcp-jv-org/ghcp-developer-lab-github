@@ -109,6 +109,72 @@ export const mockPhotos: Photo[] = [
     views: 4321,
     photographer: 'Tom Anderson',
     dateTaken: '2023-12-20'
+  },
+  {
+    id: '10',
+    url: '/placeholder-10.jpg',
+    title: 'Forest Path',
+    tags: ['nature', 'forest', 'landscape'],
+    likes: 178,
+    downloads: 72,
+    views: 1654,
+    photographer: 'Claire Evans',
+    dateTaken: '2023-12-15'
+  },
+  {
+    id: '11',
+    url: '/placeholder-11.jpg',
+    title: 'Ocean Waves',
+    tags: ['landscape', 'ocean', 'nature'],
+    likes: 245,
+    downloads: 98,
+    views: 2876,
+    photographer: 'James Turner',
+    dateTaken: '2023-12-10'
+  },
+  {
+    id: '12',
+    url: '/placeholder-12.jpg',
+    title: 'Desert Dunes',
+    tags: ['landscape', 'desert', 'adventure'],
+    likes: 134,
+    downloads: 56,
+    views: 1432,
+    photographer: 'Nadia Hassan',
+    dateTaken: '2023-12-05'
+  },
+  {
+    id: '13',
+    url: '/placeholder-13.jpg',
+    title: 'City Skyline',
+    tags: ['architecture', 'city', 'urban'],
+    likes: 290,
+    downloads: 121,
+    views: 3210,
+    photographer: 'Ryan Park',
+    dateTaken: '2023-12-01'
+  },
+  {
+    id: '14',
+    url: '/placeholder-14.jpg',
+    title: 'Golden Hour',
+    tags: ['landscape', 'sunset', 'nature'],
+    likes: 356,
+    downloads: 167,
+    views: 4890,
+    photographer: 'Sophie Lee',
+    dateTaken: '2023-11-28'
+  },
+  {
+    id: '15',
+    url: '/placeholder-15.jpg',
+    title: 'Macro Botanics',
+    tags: ['macro', 'nature', 'flowers'],
+    likes: 115,
+    downloads: 43,
+    views: 987,
+    photographer: 'Carlos Rivera',
+    dateTaken: '2023-11-25'
   }
 ];
 
