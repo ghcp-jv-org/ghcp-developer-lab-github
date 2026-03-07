@@ -143,7 +143,10 @@ export function UploadZone({ onUpload, maxFiles = 10, className = '' }: UploadZo
 
       // ── Build state entries for validated files ───────────────────────────
       const newFiles: UploadedFile[] = validatedFiles.map((file) => ({
-        id: crypto.randomUUID(), // cryptographically secure — replaces Math.random()
+        // crypto.randomUUID() is available in all modern browsers (Chrome 92+,
+        // Firefox 95+, Safari 15.4+) and Node.js 14.17+ — the minimum targets
+        // for Next.js 14+.
+        id: crypto.randomUUID(),
         file,
         sanitizedName: sanitizeFileName(file.name), // safe for display & storage
         preview: URL.createObjectURL(file),

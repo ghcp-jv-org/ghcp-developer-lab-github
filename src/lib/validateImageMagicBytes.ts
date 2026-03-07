@@ -13,7 +13,13 @@
  *  - image/gif   : GIF87a  or  GIF89a
  */
 
-type MagicSignature = number[]; // use -1 as a wildcard byte
+/**
+ * A byte value in a magic-byte signature.
+ * Use `null` as an explicit wildcard to indicate that any byte is acceptable
+ * at that position (e.g., the 4-byte size field in a RIFF/WebP header).
+ */
+type MagicByte = number | null;
+type MagicSignature = MagicByte[];
 
 const MAGIC_BYTES: Record<string, MagicSignature[]> = {
   'image/jpeg': [
@@ -24,7 +30,7 @@ const MAGIC_BYTES: Record<string, MagicSignature[]> = {
   ],
   'image/webp': [
     // RIFF (4 bytes) + size (4 wildcard bytes) + WEBP (4 bytes)
-    [0x52, 0x49, 0x46, 0x46, -1, -1, -1, -1, 0x57, 0x45, 0x42, 0x50],
+    [0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50],
   ],
   'image/gif': [
     [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
@@ -51,6 +57,6 @@ export async function validateImageMagicBytes(file: File): Promise<boolean> {
   const view = new Uint8Array(headerBuffer);
 
   return signatures.some((sig) =>
-    sig.every((byte, i) => byte === -1 || view[i] === byte),
+    sig.every((byte, i) => byte === null || view[i] === byte),
   );
 }
