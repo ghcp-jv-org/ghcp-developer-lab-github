@@ -1,9 +1,32 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { useDropzone, FileRejection } from 'react-dropzone';
+import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/** Maximum allowed file size: 10 MB */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+/** Explicitly allowed image MIME types (defense-in-depth beyond the dropzone accept filter) */
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
+
+/**
+ * Strip characters that could be misused in an HTML context from a filename.
+ * React's JSX already escapes text content, but we sanitize proactively as a
+ * defense-in-depth measure against future refactors that might use the name
+ * in an unsafe context (e.g. dangerouslySetInnerHTML, data attributes, etc.).
+ * The forward-slash is included so that closing-tag remnants like `/script`
+ * cannot survive after angle brackets are stripped.
+ */
+export function sanitizeFileName(name: string): string {
+  return name.replace(/[<>&"'`/]/g, '');
+}
 
 interface UploadedFile {
   id: string;
@@ -11,6 +34,7 @@ interface UploadedFile {
   preview: string;
   status: 'uploading' | 'success' | 'error';
   progress: number;
+  errorMessage?: string;
 }
 
 interface UploadZoneProps {
@@ -23,7 +47,13 @@ export function UploadZone({ onUpload, maxFiles = 10, className = "" }: UploadZo
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
+    // Defense-in-depth: re-validate type and size even though the dropzone
+    // accept/maxSize options already filter these at the UI level.
+    const validFiles = acceptedFiles.filter(
+      file => ALLOWED_MIME_TYPES.has(file.type) && file.size <= MAX_FILE_SIZE
+    );
+
+    const newFiles = validFiles.map(file => ({
       id: Math.random().toString(36).substring(2),
       file,
       preview: URL.createObjectURL(file),
@@ -57,22 +87,39 @@ export function UploadZone({ onUpload, maxFiles = 10, className = "" }: UploadZo
       }, 2000);
     });
 
-    onUpload?.(acceptedFiles);
+    onUpload?.(validFiles);
   }, [onUpload]);
+
+  const onDropRejected = useCallback((rejectedFiles: FileRejection[]) => {
+    const errorFiles: UploadedFile[] = rejectedFiles.map(({ file, errors }) => ({
+      id: Math.random().toString(36).substring(2),
+      file,
+      preview: '',
+      status: 'error' as const,
+      progress: 0,
+      errorMessage: errors[0]?.message ?? 'File rejected',
+    }));
+    setUploadedFiles(prev => [...prev, ...errorFiles]);
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+      'image/jpeg': ['.jpeg', '.jpg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
     },
     maxFiles,
+    maxSize: MAX_FILE_SIZE,
     multiple: true,
   });
 
   const removeFile = (id: string) => {
     setUploadedFiles(prev => {
       const file = prev.find(f => f.id === id);
-      if (file) {
+      if (file?.preview) {
         URL.revokeObjectURL(file.preview);
       }
       return prev.filter(f => f.id !== id);
@@ -122,7 +169,8 @@ export function UploadZone({ onUpload, maxFiles = 10, className = "" }: UploadZo
           >
             <h4 className="text-lg font-semibold">Uploading Files</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {uploadedFiles.map((fileObj) => (                  <motion.div
+              {uploadedFiles.map((fileObj) => (
+                <motion.div
                   key={fileObj.id}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -132,27 +180,36 @@ export function UploadZone({ onUpload, maxFiles = 10, className = "" }: UploadZo
                   <button
                     onClick={() => removeFile(fileObj.id)}
                     className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors z-10"
+                    aria-label="Remove file"
                   >
                     <X className="h-4 w-4" />
                   </button>
                   
                   <div className="relative aspect-square mb-3 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700">
-                    <img 
-                      src={fileObj.preview} 
-                      alt={fileObj.file.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {fileObj.status === 'success' && (
-                      <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
-                        <CheckCircle className="h-8 w-8 text-green-500" />
+                    {fileObj.status === 'error' ? (
+                      <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20">
+                        <AlertCircle className="h-8 w-8 text-red-500" />
                       </div>
+                    ) : (
+                      <>
+                        <img 
+                          src={fileObj.preview} 
+                          alt={sanitizeFileName(fileObj.file.name)}
+                          className="w-full h-full object-cover"
+                        />
+                        {fileObj.status === 'success' && (
+                          <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                            <CheckCircle className="h-8 w-8 text-green-500" />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium truncate">
-                        {fileObj.file.name}
+                        {sanitizeFileName(fileObj.file.name)}
                       </span>
                       <span className="text-xs text-slate-500">
                         {(fileObj.file.size / 1024 / 1024).toFixed(1)}MB
@@ -174,6 +231,13 @@ export function UploadZone({ onUpload, maxFiles = 10, className = "" }: UploadZo
                       <div className="flex items-center gap-2 text-green-600 text-sm">
                         <CheckCircle className="h-4 w-4" />
                         <span>Upload complete</span>
+                      </div>
+                    )}
+
+                    {fileObj.status === 'error' && (
+                      <div className="flex items-center gap-2 text-red-600 text-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{fileObj.errorMessage ?? 'Upload failed'}</span>
                       </div>
                     )}
                   </div>
